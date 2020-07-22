@@ -42,6 +42,32 @@ module.exports = {
             }
         );
         sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Returning a response with status ${response.status}`);
+        
+        // If an error response is returned, return it to the user
+        if(response && (response.status === "logicalError") || response.status === "serverError") {
+            sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: ${response.data}`);
+            return exits[response.status](response);
+        }
+
+        // save the access and refresh tokens in redis
+        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Saving the Access and Refresh tokens in Redis`);
+        
+        let redisResponse = await sails.helpers.redisWrapper.with(
+            {
+                requestId: REQUEST_ID,
+                dbNumber: 1,
+                operation: 'set',
+                key: response.data.tokens.accessToken,
+                value: response.data.tokens.refreshToken
+            }
+        )
+
+        // If an error response is returned, return it to the user
+        if(redisResponse && (redisResponse.status === "logicalError") || redisResponse.status === "serverError") 
+            return exits[redisResponse.status](redisResponse);
+        
+        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Successfully saved the Access and Refresh tokens in Redis`);
+
         // based on the status of the response, return a response type to the client
         // response.status: success | logicalError | serverError | forbidden | unauthorized
         return exits[response.status](response);

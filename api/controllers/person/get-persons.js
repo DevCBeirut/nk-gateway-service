@@ -19,43 +19,65 @@ module.exports = {
 
 		sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Starting...`);
 
-        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Attempting to fetch the persons from the database...`);
-        // Use the helper function to fetch all the persons
-        let allPersons = await sails.helpers.arangoQuery.with({
-            requestId: REQUEST_ID,
-            query: 'FOR person IN persons FILTER person.isActive == true RETURN person'
-        });
-
-        // Handle the possible errors returned by the helper function
-        if(allPersons && allPersons.status === "error") {
-            // If the error is a logical error, return a response with status 400
-            if(allPersons.data && allPersons.data.errorCode && allPersons.data.errorCode === 400) {
-                sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Logical error detected when querying the database. Returning a Logical error response`);
-                return exits.logicalError({
-                    status: 'LOGICAL_ERROR',
-                    data: allPersons.data.message
-                });
-            }
-
-            sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Server error detected when querying the database. Returning a server error response`);
-            // If the error is a server error, return a response with status 500
-            return exits.serverError({
-                status: 'SERVER_ERROR',
-                data: allPersons.data.message
-            });
-        }
+        // save the access and refresh tokens in redis
+        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Attempting to fetch the persons from Redis`);
         
+        let redisResponse = await sails.helpers.redisWrapper.with(
+            {
+                requestId: REQUEST_ID,
+                dbNumber: 0,
+                operation: 'get',
+                key: "persons"
+            }
+        )       
+        // No need for error handling since it's only caching. If there was a problem in caching the result, the request must continue normally
+        // If the data is found in redis, return it directly
+        if(redisResponse.data) {
+            redisResponse.data = JSON.parse(redisResponse.data);
+            sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Successfully found the list of persons in Redis.`);
+            return exits[redisResponse.status](redisResponse);
+        }
+
+        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Unable to find data in Redis. Routing the request to the backend service...`);
+        // Use the helper function to fetch all the persons
+        let response = await sails.helpers.requestRouter.with(
+            {
+                url: this.req.url,
+                headers: {requestId: this.req.headers.requestId},
+                method: 'GET',
+                requestId: REQUEST_ID
+            }
+        );
+        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Returning a response with status ${response.status}`);
+        
+        // If an error response is returned, return it to the user
+        if(response && (response.status === "logicalError") || response.status === "serverError") {
+            sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: ${response.data}`);
+            return exits[response.status](response);
+        }
         // If no records were found in the database, log it
-        if(!allPersons.data || allPersons.data.length === 0) {
-            allPersons.data = [];
+        if(!response.data || response.data.length === 0) {
+            response.data = [];
             sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Unable to find any person record in the database.`);
         }
         else 
-            sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Returning ${allPersons.data.length} person records.`);
+            sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Returning ${response.data.length} person records.`);
         
-        return exits.success({
-            status: 'success',
-            data: allPersons.data
-        });
+        // No need for error handling since it's only caching. If there was a problem in caching the result, the request must continue normally
+        await sails.helpers.redisWrapper.with(
+            {
+                requestId: REQUEST_ID,
+                dbNumber: 0,
+                operation: 'set',
+                key: "persons",
+                value: JSON.stringify(response.data)
+            }
+        )
+
+        // If an error response is returned, return it to the user
+        if(redisResponse && (redisResponse.status === "logicalError") || redisResponse.status === "serverError") 
+            return exits[redisResponse.status](redisResponse);
+
+        return exits[response.status](response);
     }
 }
