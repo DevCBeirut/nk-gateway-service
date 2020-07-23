@@ -27,7 +27,7 @@ module.exports = {
             {
                 url: this.req.url + "/" + userInfo.personId,
                 headers: {requestId: this.req.headers.requestId},
-                method: 'DELETE',
+                method: 'GET',
                 requestId: REQUEST_ID
             }
         );

@@ -33,7 +33,7 @@ module.exports = {
 
         // If an error response is returned, return it to the user
         if(redisResponse && redisResponse.status !== "success") 
-        return exits[redisResponse.status](redisResponse);
+            return exits[redisResponse.status](redisResponse);
         
         // No need for error handling since it's only caching. If there was a problem in caching the result, the request must continue normally
         // If the data is found in redis, return it directly
