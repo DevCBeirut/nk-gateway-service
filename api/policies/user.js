@@ -20,6 +20,6 @@ module.exports = async function (req, res, cb) {
         return res[userInfo.status](userInfo);
 
     // if the user is a a valid person, store the user information in the headers
-    this.req.headers.user = JSON.stringify(userInfo.data);
+    req.headers.user = JSON.stringify(userInfo.data);
     return cb();
 };

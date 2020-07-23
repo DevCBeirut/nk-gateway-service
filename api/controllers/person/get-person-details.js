@@ -19,9 +19,24 @@ module.exports = {
 
 		sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Starting...`);
 
-        const userInfo = this.req.headers.user;
-        console.log(userInfo);
+        const userInfo = JSON.parse(this.req.headers.user);
 
-        return exits.success(userInfo);
+        console.log(this.req.url + "/" + userInfo.personId)
+        // Use the helper function to call the backend
+        let response = await sails.helpers.requestRouter.with(
+            {
+                url: this.req.url + "/" + userInfo.personId,
+                headers: {requestId: this.req.headers.requestId},
+                method: 'DELETE',
+                requestId: REQUEST_ID
+            }
+        );
+        sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Returning a response with status ${response.status}`);
+        
+        // If an error response is returned, return it to the user
+        if(response && response.status !== "success") 
+            sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: ${response.data}`);        
+
+        return exits[response.status](response);
     }
 }

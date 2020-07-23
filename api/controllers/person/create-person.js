@@ -42,6 +42,12 @@ module.exports = {
             description: 'Date of birth YYYY-MM-DD',
             required: true,
             regex: /([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))/
+        },
+        isAdmin: {
+            type: 'boolean',
+            description: 'Specifies if the user is an admin or not',
+            required: false,
+            defaultsTo: false
         }
     },
     
@@ -67,10 +73,8 @@ module.exports = {
         );
         sails.log.info(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: Returning a response with status ${response.status}`);
         // If an error response is returned, return it to the user
-        if(response && (response.status === "logicalError") || response.status === "serverError") {
-            sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: ${response.data}`);
-            return exits[response.status](response);
-        }
+        if(response && response.status !== "success") 
+            sails.log.warn(`Controller ${FILE_PATH} -- Request ID ${REQUEST_ID}: ${response.data}`);        
 
         return exits[response.status](response);
     }

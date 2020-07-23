@@ -86,7 +86,6 @@ module.exports = {
             return exits.success({status: "success", data: response});
 
         } catch (error) {
-
             sails.log.error(`Helper ${FILE_PATH} -- Request ID ${inputs.requestId}: Redis server error:`);
             sails.log.error(`Helper ${FILE_PATH} -- Request ID ${inputs.requestId}: ${error}`);
             return exits.success({
@@ -111,17 +110,22 @@ let lib = {
                 
                 if (options.error) {
                     sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: Attempt ${options.attempt}/${redisInfo.config.maxAttempts} Error while connecting to the redis server`);
-                    sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: ${error}`);
+                    sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: ${options.error}`);
                 }
-                if (options.attempt > redisInfo.config.maxAttempts) {
+                if (options.attempt >= redisInfo.config.maxAttempts) {
                     sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`);
-                    throw new Error
+                    return({status: 'serverError', data: `Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`});
                 }
                 // reconnect after 250 ms
                 return redisInfo.config.retryDelay;
             },
         });
 
+        REDIS_CLIENT.on('error', (error) => {
+            sails.log.error(`Helper ${FILE_PATH} -- Request ID ${requestId}: ${error}`);
+            return({status: 'serverError', data: `Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`});
+        });
+        
         // promisify the "select database" function and select the database
         const selectDatabase = promisify(REDIS_CLIENT.select).bind(REDIS_CLIENT);
         sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: Selecting database ${redisInfo.credentials.db}`);
