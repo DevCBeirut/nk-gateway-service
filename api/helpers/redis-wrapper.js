@@ -47,8 +47,8 @@ module.exports = {
             let redisInfo = sails.config.custom.redis;
             redisInfo.credentials.db = inputs.dbNumber;
 
-            // if the method is set, make sure that the data field is supplied
-            if(inputs.method === "set" && !inputs.data)
+            // if the method is set, make sure that the value field is supplied
+            if(inputs.method === "set" && !inputs.value)
                 return exits.success({
                     status: "logicalError",
                     data: "Missing data to be inserted into Redis"
@@ -109,11 +109,11 @@ let lib = {
             retry_strategy: (options) => {
                 
                 if (options.error) {
-                    sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: Attempt ${options.attempt}/${redisInfo.config.maxAttempts} Error while connecting to the redis server`);
-                    sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: ${options.error}`);
+                    sails.log.error(`Helper ${FILE_PATH} -- Request ID ${requestId}: Attempt ${options.attempt}/${redisInfo.config.maxAttempts} Error while connecting to the redis server`);
+                    sails.log.error(`Helper ${FILE_PATH} -- Request ID ${requestId}: ${options.error}`);
                 }
                 if (options.attempt >= redisInfo.config.maxAttempts) {
-                    sails.log.info(`Helper ${FILE_PATH} -- Request ID ${requestId}: Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`);
+                    sails.log.error(`Helper ${FILE_PATH} -- Request ID ${requestId}: Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`);
                     return({status: 'serverError', data: `Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`});
                 }
                 // reconnect after 250 ms
@@ -123,7 +123,7 @@ let lib = {
 
         REDIS_CLIENT.on('error', (error) => {
             sails.log.error(`Helper ${FILE_PATH} -- Request ID ${requestId}: ${error}`);
-            return({status: 'serverError', data: `Exceeded the maximum number of attempts (${redisInfo.config.maxAttempts}). Exiting...`});
+            return({status: 'serverError', data: `Redis Server Error`});
         });
         
         // promisify the "select database" function and select the database

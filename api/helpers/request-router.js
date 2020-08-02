@@ -65,7 +65,8 @@ module.exports = {
 				responseType: 'json',
 				throwHttpErrors: false,
 				retry: {
-					limit: sails.config.custom.requestConfig.maxRetryAttempts
+					limit: sails.config.custom.requestConfig.maxRetryAttempts,
+					statusCodes: [500]
 				}
 			};
 			
