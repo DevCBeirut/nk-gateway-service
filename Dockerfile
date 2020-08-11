@@ -21,4 +21,4 @@ ENV BACKEND_PORT=1337
 ENV REQUEST_MAX_ATTEMPTS=2
 
 # Specify the run command
-CMD [\"node\", \"/app/app.js\"]
+CMD ["node", "/app/app.js"]
