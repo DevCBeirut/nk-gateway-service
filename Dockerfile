@@ -12,10 +12,10 @@ RUN npm install
 # Add the environment variables
 ENV JWT_SECRET=mydirtylittlesecret
 
-ENV REDIS_HOST=localhost
+ENV REDIS_HOST=redis
 ENV REDIS_PORT=6379
 
-ENV BACKEND_HOST=localhost
+ENV BACKEND_HOST=backend
 ENV BACKEND_PORT=1337
 
 ENV REQUEST_MAX_ATTEMPTS=2
