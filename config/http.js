@@ -8,7 +8,7 @@
  * For more information on configuration, check out:
  * https://sailsjs.com/config/http
  */
-
+const newrelic = require("newrelic");
 module.exports.http = {
 
   /****************************************************************************
@@ -47,7 +47,10 @@ module.exports.http = {
 	requestIdGenerator: (function () {
 			return function (req, res, cb) {
 				if (req.url !== '/health' && !req.headers.requestId) {
-					req.headers.requestId = Math.floor(Math.random() * Math.floor(99999)) + new Date().getTime();
+										
+					req.headers.requestId = newrelic.getTraceMetadata() && newrelic.getTraceMetadata().traceId ? 
+						newrelic.getTraceMetadata().traceId : Math.floor(Math.random() * Math.floor(99999)) + new Date().getTime();
+
 					sails.log.info(`Incoming Request ID: ${req.headers.requestId}, { ${req.method}: ${req.url}}`);
 				}
 				return cb();
